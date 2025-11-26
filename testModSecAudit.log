@@ -1,0 +1,22 @@
+--70c6790d-A--
+[25/Nov/2025:14:02:11 +0000] 192.168.1.10 54231 10.0.0.5 80
+--70c6790d-B--
+GET /?id=' OR 1=1 HTTP/1.1
+Host: example.com
+User-Agent: Mozilla/5.0 (EvilScanner/1.0)
+Accept: */*
+
+--70c6790d-H--
+Message: Warning. Pattern match "'" at ARGS:id. [file "/etc/modsecurity/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf"] [line "100"] [id "942100"] [msg "SQL Injection Attack Detected"] [severity "CRITICAL"]
+Message: Access denied with code 403 (phase 2). Match of "rx ^(?i:sleep\\()" against "ARGS:id" required. [file "/etc/modsecurity/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf"] [line "120"] [id "942110"]
+Action: Intercepted (phase 2)
+Apache-Handler: php-fpm
+Stopwatch: 1637848931555555 1234 (- - -)
+Stopwatch2: 1637848931555555 1234; combined=234, p1=1, p2=230, p3=0, p4=0, p5=3, sr=0, sw=0, l=0, gc=0
+Producer: ModSecurity for Apache/2.9.3 (http://www.modsecurity.org/); OWASP_CRS/3.2.0.
+Server: Apache
+Engine-Mode: "ENABLED"
+Total Inbound Score: 15
+Total Outbound Score: 0
+
+--70c6790d-Z--

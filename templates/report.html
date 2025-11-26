@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .details-row { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-blue-600 text-white p-4 shadow">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">ModSecurity Analysis</h1>
+            <a href="/" class="text-sm bg-blue-700 px-3 py-1 rounded hover:bg-blue-800">Upload New</a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="bg-white p-6 rounded shadow border-l-4 border-blue-500">
+    <div class="text-gray-500 text-sm">Total Transactions</div>
+    <div class="text-3xl font-bold">
+        {{ count }}
+        {% if count > shown %}
+        <span class="text-xs text-orange-500 block font-normal">(Showing last {{ shown }})</span>
+        {% endif %}
+    </div>
+</div>
+            <div class="bg-white p-6 rounded shadow border-l-4 border-red-500">
+                <div class="text-gray-500 text-sm">High Severity Events</div>
+                <div class="text-3xl font-bold">
+                    {{ entries | selectattr('score', 'ge', 5) | list | length }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Table -->
+        <div class="bg-white rounded shadow overflow-hidden">
+            <table class="min-w-full leading-normal">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-600 uppercase text-xs leading-normal">
+                        <th class="py-3 px-6 text-left">Time</th>
+                        <th class="py-3 px-6 text-left">Source IP</th>
+                        <th class="py-3 px-6 text-left">Request</th>
+                        <th class="py-3 px-6 text-center">Score</th>
+                        <th class="py-3 px-6 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-600 text-sm">
+                    {% for entry in entries %}
+                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="py-3 px-6 text-left whitespace-nowrap">{{ entry.timestamp }}</td>
+                        <td class="py-3 px-6 text-left font-mono">{{ entry.source_ip }}</td>
+                        <td class="py-3 px-6 text-left">
+                            <span class="font-bold text-blue-600">{{ entry.method }}</span> {{ entry.request_uri[:50] }}...
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            {% if entry.score > 10 %}
+                                <span class="bg-red-200 text-red-700 py-1 px-3 rounded-full text-xs">{{ entry.score }}</span>
+                            {% elif entry.score > 0 %}
+                                <span class="bg-yellow-200 text-yellow-700 py-1 px-3 rounded-full text-xs">{{ entry.score }}</span>
+                            {% else %}
+                                <span class="bg-green-200 text-green-700 py-1 px-3 rounded-full text-xs">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <button onclick="toggleDetails('{{ entry.id }}')" class="text-blue-500 hover:text-blue-700 font-semibold text-xs border border-blue-500 px-2 py-1 rounded">View</button>
+                        </td>
+                    </tr>
+                    
+                    <!-- Details Row (Hidden by default) -->
+                    <tr id="details-{{ entry.id }}" class="details-row bg-gray-50">
+                        <td colspan="5" class="p-6 border-b border-gray-200">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 class="font-bold text-gray-700 mb-2">Rule Violations</h4>
+<div class="flex gap-4 mb-3 text-xs">
+        <div class="bg-gray-100 p-2 rounded border {{ 'border-red-300 bg-red-50' if entry.score_in > 0 else '' }}">
+            <span class="font-bold">Inbound Score:</span> {{ entry.score_in }}
+        </div>
+        <div class="bg-gray-100 p-2 rounded border {{ 'border-red-300 bg-red-50' if entry.score_out > 0 else '' }}">
+            <span class="font-bold">Outbound Score:</span> {{ entry.score_out }}
+        </div>
+    </div>
+                                    {% if entry.messages %}
+                                        <ul class="space-y-2">
+                                            {% for msg in entry.messages %}
+                                            <li class="text-xs bg-white p-2 border border-red-100 rounded text-red-800">
+                                                <strong class="block">ID: {{ msg.rule_id }} | {{ msg.severity }}</strong>
+                                                {{ msg.raw[:200] }}...
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <p class="text-xs text-gray-400">No specific rule messages found in Section H.</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-700 mb-2">Raw Request</h4>
+                                    <pre class="text-xs bg-gray-800 text-green-400 p-4 rounded overflow-x-auto">{{ entry.raw_request }}</pre>
+                                    
+                                    <div class="mt-4 text-xs text-gray-500">
+                                        <strong>User Agent:</strong> {{ entry.user_agent }}<br>
+                                        <strong>Transaction ID:</strong> {{ entry.id }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function toggleDetails(id) {
+            const row = document.getElementById('details-' + id);
+            if (row.style.display === 'table-row') {
+                row.style.display = 'none';
+            } else {
+                row.style.display = 'table-row';
+            }
+        }
+    </script>
+</body>
+</html>
